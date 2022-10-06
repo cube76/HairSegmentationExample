@@ -14,3 +14,5 @@ dependencyResolutionManagement {
 }
 rootProject.name = "Hair Segmentation Example"
 include ':app'
+include ':mylibrary'
+include ':mediapipe'

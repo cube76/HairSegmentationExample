@@ -19,20 +19,25 @@ import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.graphics.SurfaceTexture;
 import android.os.Bundle;
-import androidx.appcompat.app.AppCompatActivity;
 import android.util.Log;
 import android.util.Size;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
+
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.google.mediapipe.components.CameraHelper;
 import com.google.mediapipe.components.CameraXPreviewHelper;
 import com.google.mediapipe.components.ExternalTextureConverter;
 import com.google.mediapipe.components.FrameProcessor;
 import com.google.mediapipe.components.PermissionHelper;
+import com.google.mediapipe.formats.proto.ClassificationProto;
 import com.google.mediapipe.framework.AndroidAssetUtil;
 import com.google.mediapipe.glutil.EglManager;
+
+import java.util.List;
 
 /** Main activity of MediaPipe basic app. */
 public class MainActivity extends AppCompatActivity {
@@ -85,11 +90,14 @@ public class MainActivity extends AppCompatActivity {
   // ApplicationInfo for retrieving metadata defined in the manifest.
   private ApplicationInfo applicationInfo;
 
+//  private static final String INPUT_NUM_FACES_SIDE_PACKET_NAME = "num_faces";
+  private static final String OUTPUT_LANDMARKS_STREAM_NAME = "output_size";
+
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(getContentViewLayoutResId());
-
+    Log.wtf("cek","keluar");
     try {
       applicationInfo =
           getPackageManager().getApplicationInfo(getPackageName(), PackageManager.GET_META_DATA);
@@ -111,12 +119,37 @@ public class MainActivity extends AppCompatActivity {
             applicationInfo.metaData.getString("binaryGraphName"),
             applicationInfo.metaData.getString("inputVideoStreamName"),
             applicationInfo.metaData.getString("outputVideoStreamName"));
+//    Log.e("processor",""+processor.getGraph().getCalculatorGraphConfig());
+    Log.e("eglManager",""+eglManager.getNativeContext());
     processor
         .getVideoSurfaceOutput()
         .setFlipY(
             applicationInfo.metaData.getBoolean("flipFramesVertically", FLIP_FRAMES_VERTICALLY));
 
     PermissionHelper.checkAndRequestCameraPermissions(this);
+
+//    AndroidPacketCreator packetCreator = processor.getPacketCreator();
+//    Map<String, Packet> inputSidePackets = new HashMap<>();
+//    inputSidePackets.put("num_faces", packetCreator.createInt32(1));
+//    processor.setInputSidePackets(inputSidePackets);
+
+      processor.addPacketCallback(
+              "output_size",
+              (packet) -> {
+                Log.v(TAG, "Received multi face landmarks packet: " + packet.getTimestamp());
+//                int multiFaceLandmarks =
+//                        PacketGetter.getInt32(packet);
+
+//                for (ClassificationProto.ClassificationList landmarks : multiFaceLandmarks) {
+                  Log.e("getPacketCreator", "" + packet.getNativeHandle());
+//                }
+//              Log.v(
+//                      "zombie",
+//                      "[TS:"
+//                              + packet.getTimestamp()
+//                              + "] "
+//                              + getMultiFaceLandmarksDebugString(multiFaceLandmarks));
+              });
   }
 
   // Used to obtain the content view for this application. If you are extending this class, and
@@ -172,6 +205,7 @@ public class MainActivity extends AppCompatActivity {
     previewFrameTexture = converter.getSurfaceTexture();
     cameraHelper.setOnCameraStartedListener(
         surfaceTexture -> {
+          Log.e("surfaceTexture",""+surfaceTexture);
           onCameraStarted(surfaceTexture);
         });
     CameraHelper.CameraFacing cameraFacing =
@@ -212,11 +246,15 @@ public class MainActivity extends AppCompatActivity {
             new SurfaceHolder.Callback() {
               @Override
               public void surfaceCreated(SurfaceHolder holder) {
+                Log.e("holder",""+holder);
+                Log.e("holder2",""+holder.getSurface());
+                Log.e("holder2.5",""+processor.getVideoSurfaceOutput());
                 processor.getVideoSurfaceOutput().setSurface(holder.getSurface());
               }
 
               @Override
               public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+                Log.e("holder3",""+format);
                 onPreviewDisplaySurfaceChanged(holder, format, width, height);
               }
 
@@ -225,5 +263,34 @@ public class MainActivity extends AppCompatActivity {
                 processor.getVideoSurfaceOutput().setSurface(null);
               }
             });
+  }
+
+  private static String getMultiFaceLandmarksDebugString(
+          List<ClassificationProto.ClassificationList> multiFaceLandmarks) {
+    if (multiFaceLandmarks.isEmpty()) {
+      return "No face landmarks";
+    }
+    String multiFaceLandmarksStr = "Number of faces detected: " + multiFaceLandmarks.size() + "\n";
+    int faceIndex = 0;
+    for (ClassificationProto.ClassificationList landmarks : multiFaceLandmarks) {
+      multiFaceLandmarksStr +=
+              "\t#Face landmarks for face[" + faceIndex + "]: " + landmarks.getClassificationCount() + "\n";
+      int landmarkIndex = 0;
+      for (ClassificationProto.Classification landmark : landmarks.getClassificationList()) {
+        multiFaceLandmarksStr +=
+                "\t\tLandmark ["
+                        + landmarkIndex
+                        + "]: ("
+                        + landmark.getDisplayName()
+                        + ", "
+                        + landmark.getIndex()
+                        + ", "
+                        + landmark.getScore()
+                        + ")\n";
+        ++landmarkIndex;
+      }
+      ++faceIndex;
+    }
+    return multiFaceLandmarksStr;
   }
 }
