@@ -29,7 +29,6 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -240,7 +239,7 @@ public class MainActivity extends AppCompatActivity {
             ? CameraHelper.CameraFacing.FRONT
             : CameraHelper.CameraFacing.BACK;
     cameraHelper.startCamera(
-        this, cameraFacing, previewFrameTexture, cameraTargetResolution());
+        this, new ImageCapture.Builder(), cameraFacing, previewFrameTexture, cameraTargetResolution());
 
     actionButton.setOnClickListener(new View.OnClickListener() {
       @Override
@@ -260,7 +259,7 @@ public class MainActivity extends AppCompatActivity {
         cameraHelper.takePicture(file, new ImageCapture.OnImageSavedCallback() {
           @Override
           public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
-            Toast.makeText(getApplicationContext(), "Success", Toast.LENGTH_SHORT).show();
+//            Toast.makeText(getApplicationContext(), "Success", Toast.LENGTH_SHORT).show();
             Log.e(TAG, "berhasil");
           }
 
