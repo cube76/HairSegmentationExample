@@ -17,17 +17,26 @@ package id.infidea.hairsegmentationexample;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.SurfaceTexture;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.util.Size;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
+import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.camera.core.ImageCapture;
+import androidx.camera.core.ImageCaptureException;
 
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.mediapipe.components.CameraHelper;
 import com.google.mediapipe.components.CameraXPreviewHelper;
 import com.google.mediapipe.components.ExternalTextureConverter;
@@ -35,8 +44,11 @@ import com.google.mediapipe.components.FrameProcessor;
 import com.google.mediapipe.components.PermissionHelper;
 import com.google.mediapipe.formats.proto.ClassificationProto;
 import com.google.mediapipe.framework.AndroidAssetUtil;
+import com.google.mediapipe.framework.PacketGetter;
 import com.google.mediapipe.glutil.EglManager;
 
+import java.io.File;
+import java.util.Arrays;
 import java.util.List;
 
 /** Main activity of MediaPipe basic app. */
@@ -75,6 +87,8 @@ public class MainActivity extends AppCompatActivity {
   protected FrameProcessor processor;
   // Handles camera access via the {@link CameraX} Jetpack support library.
   protected CameraXPreviewHelper cameraHelper;
+  FloatingActionButton actionButton;
+  FrameLayout frameLayout;
 
   // {@link SurfaceTexture} where the camera-preview frames can be accessed.
   private SurfaceTexture previewFrameTexture;
@@ -83,6 +97,7 @@ public class MainActivity extends AppCompatActivity {
 
   // Creates and manages an {@link EGLContext}.
   private EglManager eglManager;
+  ViewGroup viewGroup;
   // Converts the GL_TEXTURE_EXTERNAL_OES texture from Android camera into a regular texture to be
   // consumed by {@link FrameProcessor} and the underlying MediaPipe graph.
   private ExternalTextureConverter converter;
@@ -98,6 +113,7 @@ public class MainActivity extends AppCompatActivity {
     super.onCreate(savedInstanceState);
     setContentView(getContentViewLayoutResId());
     Log.wtf("cek","keluar");
+    frameLayout = findViewById(R.id.preview_display_layout);
     try {
       applicationInfo =
           getPackageManager().getApplicationInfo(getPackageName(), PackageManager.GET_META_DATA);
@@ -133,15 +149,25 @@ public class MainActivity extends AppCompatActivity {
 //    inputSidePackets.put("num_faces", packetCreator.createInt32(1));
 //    processor.setInputSidePackets(inputSidePackets);
 
+//    if (Log.isLoggable(TAG, Log.VERBOSE)) {
+//    processor.getGraph().addPacketCallback("output_size", (packet) -> {
+//      Log.v(TAG, "Received: " + PacketGetter.getInt32(packet));
+//    });
+    processor.addPacketCallback(
+            "output_mask_size",
+            (packet) -> {
+              Log.v(TAG, "Received atas: " + Arrays.toString(PacketGetter.getInt32Vector(packet)));
+            });
       processor.addPacketCallback(
               "output_size",
               (packet) -> {
                 Log.v(TAG, "Received multi face landmarks packet: " + packet.getTimestamp());
-//                int multiFaceLandmarks =
-//                        PacketGetter.getInt32(packet);
-
-//                for (ClassificationProto.ClassificationList landmarks : multiFaceLandmarks) {
-                  Log.e("getPacketCreator", "" + packet.getNativeHandle());
+                Log.v(TAG, "Received: " + Arrays.toString(PacketGetter.getInt32Vector(packet)));
+//                PacketGetter.PacketPair multiFaceLandmarks =
+//                        PacketGetter.getPairOfPackets(packet);
+////
+//                  Log.e("Received getPacketCreator", "" + multiFaceLandmarks);
+//                Log.e("getPacket", "" + PacketGetter.getVideoHeaderWidth(packet));
 //                }
 //              Log.v(
 //                      "zombie",
@@ -150,7 +176,8 @@ public class MainActivity extends AppCompatActivity {
 //                              + "] "
 //                              + getMultiFaceLandmarksDebugString(multiFaceLandmarks));
               });
-  }
+    }
+//  }
 
   // Used to obtain the content view for this application. If you are extending this class, and
   // have a custom layout, override this method and return the custom layout.
@@ -214,8 +241,51 @@ public class MainActivity extends AppCompatActivity {
             : CameraHelper.CameraFacing.BACK;
     cameraHelper.startCamera(
         this, cameraFacing, previewFrameTexture, cameraTargetResolution());
+
+    actionButton.setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View view) {
+        Log.e("susu", "SUK");
+        File file = new File(Environment.getExternalStorageDirectory().toString() + "/Pictures", System.currentTimeMillis()+"contoh.jpeg");
+
+//        Bitmap bitmap = getBitmapFromView(frameLayout);
+//        try {
+//          FileOutputStream out = new FileOutputStream(file);
+//          bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
+//          out.flush();
+//          out.close();
+//        } catch (Exception e) {
+//          e.printStackTrace();
+//        }
+        cameraHelper.takePicture(file, new ImageCapture.OnImageSavedCallback() {
+          @Override
+          public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
+            Toast.makeText(getApplicationContext(), "Success", Toast.LENGTH_SHORT).show();
+            Log.e(TAG, "berhasil");
+          }
+
+          @Override
+          public void onError(@NonNull ImageCaptureException exception) {
+            Log.e(TAG, String.format(
+                    "error : %s", exception.toString()));
+          }
+        });
+      }
+    });
+
+  }
+  public Bitmap getBitmapFromView(View view) {
+    view.setDrawingCacheEnabled(true);
+    Bitmap bitmap = Bitmap.createBitmap(view.getDrawingCache());
+    return bitmap;
   }
 
+  public Bitmap viewToBitmap(View view) {
+    Bitmap bitmap = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
+    Canvas canvas = new Canvas(bitmap);
+    view.draw(canvas);
+    return bitmap;
+  }
   protected Size computeViewSize(int width, int height) {
     return new Size(width, height);
   }
@@ -237,7 +307,8 @@ public class MainActivity extends AppCompatActivity {
 
   private void setupPreviewDisplayView() {
     previewDisplayView.setVisibility(View.GONE);
-    ViewGroup viewGroup = findViewById(R.id.preview_display_layout);
+    actionButton = findViewById(R.id.floatingActionButton);
+    viewGroup = findViewById(R.id.preview_display_layout);
     viewGroup.addView(previewDisplayView);
 
     previewDisplayView
