@@ -30,10 +30,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.ImageCapture;
-import androidx.camera.core.ImageCaptureException;
+import androidx.core.content.ContextCompat;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.mediapipe.components.CameraHelper;
@@ -43,10 +42,13 @@ import com.google.mediapipe.components.FrameProcessor;
 import com.google.mediapipe.components.PermissionHelper;
 import com.google.mediapipe.formats.proto.ClassificationProto;
 import com.google.mediapipe.framework.AndroidAssetUtil;
+import com.google.mediapipe.framework.AndroidPacketGetter;
 import com.google.mediapipe.framework.PacketGetter;
 import com.google.mediapipe.glutil.EglManager;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.util.Arrays;
 import java.util.List;
 
@@ -88,6 +90,7 @@ public class MainActivity extends AppCompatActivity {
   protected CameraXPreviewHelper cameraHelper;
   FloatingActionButton actionButton;
   FrameLayout frameLayout;
+  Bitmap bitmap;
 
   // {@link SurfaceTexture} where the camera-preview frames can be accessed.
   private SurfaceTexture previewFrameTexture;
@@ -113,6 +116,7 @@ public class MainActivity extends AppCompatActivity {
     setContentView(getContentViewLayoutResId());
     Log.wtf("cek","keluar");
     frameLayout = findViewById(R.id.preview_display_layout);
+    frameLayout.setBackground(ContextCompat.getDrawable(this,R.drawable.photo));
     try {
       applicationInfo =
           getPackageManager().getApplicationInfo(getPackageName(), PackageManager.GET_META_DATA);
@@ -157,11 +161,24 @@ public class MainActivity extends AppCompatActivity {
             (packet) -> {
               Log.v(TAG, "Received atas: " + Arrays.toString(PacketGetter.getInt32Vector(packet)));
             });
+    processor.addPacketCallback(
+            "output_rgba",
+            (packet) -> {
+              bitmap = AndroidPacketGetter.getBitmapFromRgba(packet);
+              ByteArrayOutputStream stream = new ByteArrayOutputStream();
+//              bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+              Bitmap newBitmap = Bitmap.createScaledBitmap(bitmap, 1, 1, true);
+              final int color = newBitmap.getPixel(0, 0);
+//              byte[] byteArray = stream.toByteArray();
+//              bitmap.recycle();
+              Log.v(TAG, "Received bitmap: " + color);
+            });
       processor.addPacketCallback(
               "output_size",
               (packet) -> {
                 Log.v(TAG, "Received multi face landmarks packet: " + packet.getTimestamp());
                 Log.v(TAG, "Received: " + Arrays.toString(PacketGetter.getInt32Vector(packet)));
+
 //                PacketGetter.PacketPair multiFaceLandmarks =
 //                        PacketGetter.getPairOfPackets(packet);
 ////
@@ -196,6 +213,9 @@ public class MainActivity extends AppCompatActivity {
     converter.setConsumer(processor);
     if (PermissionHelper.cameraPermissionsGranted(this)) {
       startCamera();
+
+//      previewFrameTexture = converter.getSurfaceTexture();
+//      previewDisplayView.setVisibility(View.VISIBLE);
     }
   }
 
@@ -248,27 +268,27 @@ public class MainActivity extends AppCompatActivity {
         File file = new File(Environment.getExternalStorageDirectory().toString() + "/Pictures", System.currentTimeMillis()+"contoh.jpeg");
 
 //        Bitmap bitmap = getBitmapFromView(frameLayout);
-//        try {
-//          FileOutputStream out = new FileOutputStream(file);
-//          bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
-//          out.flush();
-//          out.close();
-//        } catch (Exception e) {
-//          e.printStackTrace();
-//        }
-        cameraHelper.takePicture(file, new ImageCapture.OnImageSavedCallback() {
-          @Override
-          public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
-//            Toast.makeText(getApplicationContext(), "Success", Toast.LENGTH_SHORT).show();
-            Log.e(TAG, "berhasil");
-          }
-
-          @Override
-          public void onError(@NonNull ImageCaptureException exception) {
-            Log.e(TAG, String.format(
-                    "error : %s", exception.toString()));
-          }
-        });
+        try {
+          FileOutputStream out = new FileOutputStream(file);
+          bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
+          out.flush();
+          out.close();
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+//        cameraHelper.takePicture(file, new ImageCapture.OnImageSavedCallback() {
+//          @Override
+//          public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
+////            Toast.makeText(getApplicationContext(), "Success", Toast.LENGTH_SHORT).show();
+//            Log.e(TAG, "berhasil");
+//          }
+//
+//          @Override
+//          public void onError(@NonNull ImageCaptureException exception) {
+//            Log.e(TAG, String.format(
+//                    "error : %s", exception.toString()));
+//          }
+//        });
       }
     });
 
