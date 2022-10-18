@@ -168,17 +168,26 @@ public class MainActivity extends AppCompatActivity {
               bitmap = AndroidPacketGetter.getBitmapFromRgba(packet);
               ByteArrayOutputStream stream = new ByteArrayOutputStream();
 //              bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
-              Bitmap newBitmap = Bitmap.createScaledBitmap(bitmap, 1, 1, true);
-
-              ByteBuffer buffer = ByteBuffer.allocate(bitmap.getByteCount());
-              bitmap.copyPixelsFromBuffer(buffer);
-
-              final int color = newBitmap.getPixel(0, 0);
-              byte[] byteArray = buffer.array();
+//              Bitmap newBitmap = Bitmap.createScaledBitmap(bitmap, 1, 1, true);
+//              final int color = newBitmap.getPixel(0, 0);
 //              byte[] byteArray = stream.toByteArray();
 //              bitmap.recycle();
-              Log.v(TAG, "Received bitmap: " + color);
-              Log.v(TAG, "arrayByte: " + Arrays.toString(byteArray));
+              int width = bitmap.getWidth();
+              int height = bitmap.getHeight();
+
+              int size = bitmap.getRowBytes() * bitmap.getHeight();
+              ByteBuffer byteBuffer = ByteBuffer.allocate(size);
+              bitmap.copyPixelsToBuffer(byteBuffer);
+              byte[] byteArray = byteBuffer.array();
+              Log.v(TAG, "Received bitmap1: " + Arrays.toString(byteArray));
+//
+//              Palette.from(bitmap).generate(new Palette.PaletteAsyncListener() {
+//                @RequiresApi(api = Build.VERSION_CODES.O)
+//                public void onGenerated(Palette p) {
+//                  // Use generated instance
+//                  Log.v(TAG, "Received bitmap: " + p.getSwatches());
+//                }
+//              });
             });
       processor.addPacketCallback(
               "output_size",
