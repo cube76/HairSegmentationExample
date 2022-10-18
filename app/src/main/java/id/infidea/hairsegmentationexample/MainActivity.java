@@ -49,6 +49,7 @@ import com.google.mediapipe.glutil.EglManager;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 
@@ -168,10 +169,16 @@ public class MainActivity extends AppCompatActivity {
               ByteArrayOutputStream stream = new ByteArrayOutputStream();
 //              bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
               Bitmap newBitmap = Bitmap.createScaledBitmap(bitmap, 1, 1, true);
+
+              ByteBuffer buffer = ByteBuffer.allocate(bitmap.getByteCount());
+              bitmap.copyPixelsFromBuffer(buffer);
+
               final int color = newBitmap.getPixel(0, 0);
+              byte[] byteArray = buffer.array();
 //              byte[] byteArray = stream.toByteArray();
 //              bitmap.recycle();
               Log.v(TAG, "Received bitmap: " + color);
+              Log.v(TAG, "arrayByte: " + Arrays.toString(byteArray));
             });
       processor.addPacketCallback(
               "output_size",
