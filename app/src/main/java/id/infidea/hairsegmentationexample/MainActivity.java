@@ -20,6 +20,7 @@ import android.content.pm.PackageManager.NameNotFoundException;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.SurfaceTexture;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
@@ -30,9 +31,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.ImageCapture;
 import androidx.core.content.ContextCompat;
+import androidx.palette.graphics.Palette;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.mediapipe.components.CameraHelper;
@@ -160,7 +163,7 @@ public class MainActivity extends AppCompatActivity {
     processor.addPacketCallback(
             "output_mask_size",
             (packet) -> {
-              Log.v(TAG, "Received atas: " + Arrays.toString(PacketGetter.getInt32Vector(packet)));
+              Log.v(TAG, "Received mask size: " + Arrays.toString(PacketGetter.getInt32Vector(packet)));
             });
     processor.addPacketCallback(
             "output_rgba",
@@ -179,21 +182,24 @@ public class MainActivity extends AppCompatActivity {
               ByteBuffer byteBuffer = ByteBuffer.allocate(size);
               bitmap.copyPixelsToBuffer(byteBuffer);
               byte[] byteArray = byteBuffer.array();
-              Log.v(TAG, "Received bitmap1: " + Arrays.toString(byteArray));
+              Log.v(TAG, "Received bitmap1: " +byteArray.length);
 //
-//              Palette.from(bitmap).generate(new Palette.PaletteAsyncListener() {
-//                @RequiresApi(api = Build.VERSION_CODES.O)
-//                public void onGenerated(Palette p) {
-//                  // Use generated instance
-//                  Log.v(TAG, "Received bitmap: " + p.getSwatches());
-//                }
-//              });
+              Palette.from(bitmap).generate(new Palette.PaletteAsyncListener() {
+                @RequiresApi(api = Build.VERSION_CODES.O)
+                public void onGenerated(Palette p) {
+                  // Use generated instance
+                  Log.v(TAG, "Received bitmap: " + p.getSwatches());
+                  Palette.Swatch swatch = p.getVibrantSwatch();
+                  Log.v(TAG, "Received bitmap swatch: " + swatch.getRgb());
+                }
+              });
+
             });
       processor.addPacketCallback(
               "output_size",
               (packet) -> {
                 Log.v(TAG, "Received multi face landmarks packet: " + packet.getTimestamp());
-                Log.v(TAG, "Received: " + Arrays.toString(PacketGetter.getInt32Vector(packet)));
+                Log.v(TAG, "Received image size: " + Arrays.toString(PacketGetter.getInt32Vector(packet)));
 
 //                PacketGetter.PacketPair multiFaceLandmarks =
 //                        PacketGetter.getPairOfPackets(packet);
