@@ -189,24 +189,38 @@ public class MainActivity extends AppCompatActivity {
 //              float alpha = Color.valueOf(color).alpha();
 //              Log.v(TAG, "Received color: " + red+alpha);
 
-              ArrayList<ArrayList<Float>> imageRed = new ArrayList<ArrayList<Float>>();
-              for (int i = 1; i <= 512; i++) {
-                Log.e("pixel", String.valueOf(i));
-                for (int j = 1; j <= 512; j++) {
+              ArrayList<ArrayList<Integer>> imageRed = new ArrayList<>();
+              for (int i = 1; i <= 4; i++) {
+                for (int j = 0; j < 512; j++) {
 //                  Log.e("pixel",i+":"+j);
-                  int color = bitmap.getPixel(i, j);
+                  int xPixel;
+                  int yPixel;
+                  if (i < 3) {
+                    xPixel = j;
+                    yPixel = 255;
+                    if (i%2 != 0) xPixel = 511 - j;
+                  } else {
+                    xPixel = 255;
+                    yPixel = j;
+                    if (i%2 != 0) yPixel = 511 - j;
+                  }
+
+                  int color = bitmap.getPixel(xPixel, yPixel);
                   Float red = Color.valueOf(color).red();
                   Float alpha = Color.valueOf(color).alpha();
                   if (red == 1.0f && alpha == 1.0f){
-                    ArrayList<Float> addData = new ArrayList<Float>();
-                    addData.add(red);
-                    addData.add(alpha);
+                    ArrayList<Integer> addData = new ArrayList<>();
+                    addData.add(xPixel);
+                    addData.add(yPixel);
                     imageRed.add(addData);
+//                    Log.v(TAG, "Received color pos : "+i+ " " + xPixel + " " + yPixel);
+                    break;
                   }
 
                 }
               }
-//
+              if (imageRed.size() >= 4) Log.v(TAG, "Received color pos : " + imageRed);
+
 //              Palette.from(bitmap).generate(new Palette.PaletteAsyncListener() {
 //                @RequiresApi(api = Build.VERSION_CODES.O)
 //                public void onGenerated(Palette p) {
