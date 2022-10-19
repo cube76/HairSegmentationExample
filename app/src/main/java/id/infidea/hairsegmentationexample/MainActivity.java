@@ -19,6 +19,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.SurfaceTexture;
 import android.os.Build;
 import android.os.Bundle;
@@ -35,7 +36,6 @@ import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.ImageCapture;
 import androidx.core.content.ContextCompat;
-import androidx.palette.graphics.Palette;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.mediapipe.components.CameraHelper;
@@ -43,7 +43,6 @@ import com.google.mediapipe.components.CameraXPreviewHelper;
 import com.google.mediapipe.components.ExternalTextureConverter;
 import com.google.mediapipe.components.FrameProcessor;
 import com.google.mediapipe.components.PermissionHelper;
-import com.google.mediapipe.formats.proto.ClassificationProto;
 import com.google.mediapipe.framework.AndroidAssetUtil;
 import com.google.mediapipe.framework.AndroidPacketGetter;
 import com.google.mediapipe.framework.PacketGetter;
@@ -52,9 +51,8 @@ import com.google.mediapipe.glutil.EglManager;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 /** Main activity of MediaPipe basic app. */
 public class MainActivity extends AppCompatActivity {
@@ -95,6 +93,7 @@ public class MainActivity extends AppCompatActivity {
   FloatingActionButton actionButton;
   FrameLayout frameLayout;
   Bitmap bitmap;
+  Bitmap bitmap_tmp;
 
   // {@link SurfaceTexture} where the camera-preview frames can be accessed.
   private SurfaceTexture previewFrameTexture;
@@ -114,6 +113,7 @@ public class MainActivity extends AppCompatActivity {
 //  private static final String INPUT_NUM_FACES_SIDE_PACKET_NAME = "num_faces";
   private static final String OUTPUT_LANDMARKS_STREAM_NAME = "output_size";
 
+  @RequiresApi(api = Build.VERSION_CODES.O)
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
@@ -178,21 +178,44 @@ public class MainActivity extends AppCompatActivity {
               int width = bitmap.getWidth();
               int height = bitmap.getHeight();
 
-              int size = bitmap.getRowBytes() * bitmap.getHeight();
-              ByteBuffer byteBuffer = ByteBuffer.allocate(size);
-              bitmap.copyPixelsToBuffer(byteBuffer);
-              byte[] byteArray = byteBuffer.array();
-              Log.v(TAG, "Received bitmap1: " +byteArray.length);
-//
-              Palette.from(bitmap).generate(new Palette.PaletteAsyncListener() {
-                @RequiresApi(api = Build.VERSION_CODES.O)
-                public void onGenerated(Palette p) {
-                  // Use generated instance
-                  Log.v(TAG, "Received bitmap: " + p.getSwatches());
-                  Palette.Swatch swatch = p.getVibrantSwatch();
-                  Log.v(TAG, "Received bitmap swatch: " + swatch.getRgb());
+//              int size = bitmap.getRowBytes() * bitmap.getHeight();
+//              Log.v(TAG, "Received bitmap sad: " +bitmap.getRowBytes()+":"+bitmap.getHeight());
+//              ByteBuffer byteBuffer = ByteBuffer.allocate(size);
+//              bitmap.copyPixelsToBuffer(byteBuffer);
+//              byte[] byteArray = byteBuffer.array();
+              Log.v(TAG, "Received bitmap1: " + width+":"+height);
+//              final int color = bitmap.getPixel(256, 256);
+//              float red = Color.valueOf(color).red();
+//              float alpha = Color.valueOf(color).alpha();
+//              Log.v(TAG, "Received color: " + red+alpha);
+
+              ArrayList<ArrayList<Float>> imageRed = new ArrayList<ArrayList<Float>>();
+              for (int i = 1; i <= 512; i++) {
+                Log.e("pixel", String.valueOf(i));
+                for (int j = 1; j <= 512; j++) {
+//                  Log.e("pixel",i+":"+j);
+                  int color = bitmap.getPixel(i, j);
+                  Float red = Color.valueOf(color).red();
+                  Float alpha = Color.valueOf(color).alpha();
+                  if (red == 1.0f && alpha == 1.0f){
+                    ArrayList<Float> addData = new ArrayList<Float>();
+                    addData.add(red);
+                    addData.add(alpha);
+                    imageRed.add(addData);
+                  }
+
                 }
-              });
+              }
+//
+//              Palette.from(bitmap).generate(new Palette.PaletteAsyncListener() {
+//                @RequiresApi(api = Build.VERSION_CODES.O)
+//                public void onGenerated(Palette p) {
+//                  // Use generated instance
+//                  Log.v(TAG, "Received bitmap: " + p.getSwatches());
+//                  Palette.Swatch swatch = p.getVibrantSwatch();
+//                  Log.v(TAG, "Received bitmap swatch: " + swatch.getRgb());
+//                }
+//              });
 
             });
       processor.addPacketCallback(
@@ -292,7 +315,7 @@ public class MainActivity extends AppCompatActivity {
 //        Bitmap bitmap = getBitmapFromView(frameLayout);
         try {
           FileOutputStream out = new FileOutputStream(file);
-          bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
+          bitmap_tmp.compress(Bitmap.CompressFormat.JPEG, 100, out);
           out.flush();
           out.close();
         } catch (Exception e) {
@@ -377,32 +400,5 @@ public class MainActivity extends AppCompatActivity {
             });
   }
 
-  private static String getMultiFaceLandmarksDebugString(
-          List<ClassificationProto.ClassificationList> multiFaceLandmarks) {
-    if (multiFaceLandmarks.isEmpty()) {
-      return "No face landmarks";
-    }
-    String multiFaceLandmarksStr = "Number of faces detected: " + multiFaceLandmarks.size() + "\n";
-    int faceIndex = 0;
-    for (ClassificationProto.ClassificationList landmarks : multiFaceLandmarks) {
-      multiFaceLandmarksStr +=
-              "\t#Face landmarks for face[" + faceIndex + "]: " + landmarks.getClassificationCount() + "\n";
-      int landmarkIndex = 0;
-      for (ClassificationProto.Classification landmark : landmarks.getClassificationList()) {
-        multiFaceLandmarksStr +=
-                "\t\tLandmark ["
-                        + landmarkIndex
-                        + "]: ("
-                        + landmark.getDisplayName()
-                        + ", "
-                        + landmark.getIndex()
-                        + ", "
-                        + landmark.getScore()
-                        + ")\n";
-        ++landmarkIndex;
-      }
-      ++faceIndex;
-    }
-    return multiFaceLandmarksStr;
-  }
+
 }
