@@ -394,6 +394,7 @@ public class MainActivity extends AppCompatActivity {
         this, new ImageCapture.Builder(), cameraFacing, previewFrameTexture, cameraTargetResolution());
 
     actionButton.setOnClickListener(new View.OnClickListener() {
+      @RequiresApi(api = Build.VERSION_CODES.O)
       @Override
       public void onClick(View view) {
         Log.e("susu", "SUK");
@@ -402,9 +403,28 @@ public class MainActivity extends AppCompatActivity {
 //        Bitmap bitmap = getBitmapFromView(frameLayout);
         try {
           FileOutputStream out = new FileOutputStream(file);
-          bitmap_tmp.compress(Bitmap.CompressFormat.JPEG, 100, out);
+          bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
           out.flush();
           out.close();
+
+          ArrayList<ArrayList<Integer>> imageRed = new ArrayList<ArrayList<Integer>>();
+          for (int i = 1; i < 512; i++) {
+            Log.e("pixel", String.valueOf(i));
+            for (int j = 1; j < 512; j++) {
+                  Log.e("pixel",i+":"+j);
+              int color = bitmap.getPixel(i, j);
+              Float red = Color.valueOf(color).red();
+              Float alpha = Color.valueOf(color).alpha();
+              if (red == 1.0f && alpha == 1.0f){
+                ArrayList<Integer> addData = new ArrayList<Integer>();
+                addData.add(i);
+                addData.add(j);
+                imageRed.add(addData);
+              }
+
+            }
+          }
+          Log.e("hasil",""+imageRed);
         } catch (Exception e) {
           e.printStackTrace();
         }
