@@ -163,7 +163,7 @@ public class MainActivity extends AppCompatActivity {
     processor.addPacketCallback(
             "output_mask_size",
             (packet) -> {
-              Log.v(TAG, "Received mask size: " + Arrays.toString(PacketGetter.getInt32Vector(packet)));
+//              Log.v(TAG, "Received mask size: " + Arrays.toString(PacketGetter.getInt32Vector(packet)));
             });
     processor.addPacketCallback(
             "output_rgba",
@@ -183,43 +183,116 @@ public class MainActivity extends AppCompatActivity {
 //              ByteBuffer byteBuffer = ByteBuffer.allocate(size);
 //              bitmap.copyPixelsToBuffer(byteBuffer);
 //              byte[] byteArray = byteBuffer.array();
-              Log.v(TAG, "Received bitmap1: " + width+":"+height);
+//              Log.v(TAG, "Received bitmap1: " + width+":"+height);
 //              final int color = bitmap.getPixel(256, 256);
 //              float red = Color.valueOf(color).red();
 //              float alpha = Color.valueOf(color).alpha();
 //              Log.v(TAG, "Received color: " + red+alpha);
 
               ArrayList<ArrayList<Integer>> imageRed = new ArrayList<>();
-              for (int i = 1; i <= 4; i++) {
-                for (int j = 0; j < 512; j++) {
-//                  Log.e("pixel",i+":"+j);
-                  int xPixel;
-                  int yPixel;
-                  if (i < 3) {
-                    xPixel = j;
-                    yPixel = 255;
-                    if (i%2 != 0) xPixel = 511 - j;
+              int color = bitmap.getPixel(255,255);
+              if (Color.valueOf(color).red() == 1.0f && Color.valueOf(color).alpha() == 1.0f) {
+//                Log.v(TAG, "Binary in");
+                for (int i = 1; i <= 2; i++) {
+                  int low;
+                  int high;
+
+                  if (i==1) {
+                    low = 255;
+                    high = 511;
                   } else {
-                    xPixel = 255;
-                    yPixel = j;
-                    if (i%2 != 0) yPixel = 511 - j;
+                    low = 0;
+                    high = 255;
                   }
 
-                  int color = bitmap.getPixel(xPixel, yPixel);
-                  Float red = Color.valueOf(color).red();
-                  Float alpha = Color.valueOf(color).alpha();
-                  if (red == 1.0f && alpha == 1.0f){
-                    ArrayList<Integer> addData = new ArrayList<>();
-                    addData.add(xPixel);
-                    addData.add(yPixel);
-                    imageRed.add(addData);
-//                    Log.v(TAG, "Received color pos : "+i+ " " + xPixel + " " + yPixel);
-                    break;
-                  }
+                  high = (high+low)/2;
+                  while (low != high) {
+                    int chosenJ = 0;
+                    boolean found = false;
+                    // Row check
+                    for(int j=0; j <= 511; j++) {
+//                      Log.v(TAG, "j : "+ j);
+//                      Log.v(TAG, "high : "+ high);
+                      color = bitmap.getPixel(j,high);
+                      Float red = Color.valueOf(color).red();
+                      Float alpha = Color.valueOf(color).alpha();
+                      if (red == 1.0f) {
+//                        Log.v(TAG, "Received found true");
+                        found = true;
+                        chosenJ = j;
+                        break;
+                      }
+                    }
 
+                    if (found) {
+                      // +1 and -1 to check where to continue
+                      int positiveColor;
+                      if (high+1 < 511) {
+                        positiveColor = bitmap.getPixel(chosenJ, high+1);
+                      } else positiveColor = bitmap.getPixel(chosenJ,511);
+                      int negativeColor;
+                      if (high -1 < 0) {
+                        negativeColor =  bitmap.getPixel(chosenJ,high-1);
+                      } else negativeColor = bitmap.getPixel(chosenJ,0);
+                      boolean finish = false;
+
+                      if (i == 1 && Color.valueOf(positiveColor).red() == 1.0f) {
+                        if (high >= 511) {
+                          finish = true;
+                        } else high = high + 1;
+//                        Log.v(TAG, "High : " + low);
+//                        Log.v(TAG, "High : " + high);
+                      } else if (i == 2 && Color.valueOf(negativeColor).red() == 1.0f) {
+                        if (high <= 0) {
+                          finish = true;
+                        } else high = high - 1;
+//                        Log.v(TAG, "High2 : " + low);
+//                        Log.v(TAG, "High2 : " + high);
+                      } else {
+                        finish = true;
+                      }
+
+                      if (finish) {
+                        Log.v(TAG, "Received found finish");
+                        ArrayList<Integer> addData = new ArrayList<>();
+                        addData.add(chosenJ);
+                        addData.add(high);
+                        imageRed.add(addData);
+                        break;
+                      }
+                    } else {
+                      high = (high+low)/2;
+                    }
+                  }
+  //                for (int j = 0; j < 512; j++) {
+  ////                  Log.e("pixel",i+":"+j);
+  //                  int xPixel;
+  //                  int yPixel;
+  //                  if (i < 3) {
+  //                    xPixel = j;
+  //                    yPixel = 255;
+  //                    if (i%2 != 0) xPixel = 511 - j;
+  //                  } else {
+  //                    xPixel = 255;
+  //                    yPixel = j;
+  //                    if (i%2 != 0) yPixel = 511 - j;
+  //                  }
+  //
+  //                  int color = bitmap.getPixel(xPixel, yPixel);
+  //                  Float red = Color.valueOf(color).red();
+  //                  Float alpha = Color.valueOf(color).alpha();
+  //                  if (red == 1.0f && alpha == 1.0f){
+  //                    ArrayList<Integer> addData = new ArrayList<>();
+  //                    addData.add(xPixel);
+  //                    addData.add(yPixel);
+  //                    imageRed.add(addData);
+  ////                    Log.v(TAG, "Received color pos : "+i+ " " + xPixel + " " + yPixel);
+  //                    break;
+  //                  }
+  //                }
                 }
+                if (imageRed.size() >= 2) Log.v(TAG, "Received color pos : " + imageRed);
               }
-              if (imageRed.size() >= 4) Log.v(TAG, "Received color pos : " + imageRed);
 
 //              Palette.from(bitmap).generate(new Palette.PaletteAsyncListener() {
 //                @RequiresApi(api = Build.VERSION_CODES.O)
@@ -235,8 +308,8 @@ public class MainActivity extends AppCompatActivity {
       processor.addPacketCallback(
               "output_size",
               (packet) -> {
-                Log.v(TAG, "Received multi face landmarks packet: " + packet.getTimestamp());
-                Log.v(TAG, "Received image size: " + Arrays.toString(PacketGetter.getInt32Vector(packet)));
+//                Log.v(TAG, "Received multi face landmarks packet: " + packet.getTimestamp());
+//                Log.v(TAG, "Received image size: " + Arrays.toString(PacketGetter.getInt32Vector(packet)));
 
 //                PacketGetter.PacketPair multiFaceLandmarks =
 //                        PacketGetter.getPairOfPackets(packet);
