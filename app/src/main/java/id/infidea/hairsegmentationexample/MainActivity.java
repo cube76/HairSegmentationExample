@@ -189,9 +189,45 @@ public class MainActivity extends AppCompatActivity {
 //              float alpha = Color.valueOf(color).alpha();
 //              Log.v(TAG, "Received color: " + red+alpha);
 
+              ArrayList<Integer> imageRed = new ArrayList<Integer>();
+              int init = 512;
+              int initUp = 0;
+              int initDown = 0;
+              int count = 0;
+              while(true){
+                count+=1;
+                for (int i = 1; i < 512; i++) {
+                  int color = bitmap.getPixel(i, init / 2);
+                  Float red = Color.valueOf(color).red();
+                  Float alpha = Color.valueOf(color).alpha();
+                  if (red == 1.0f && alpha == 1.0f) {
+                    if (initUp == 0) {
+                      initDown = init / 2;
+                      imageRed.clear();
+                      imageRed.add(i);
+                      imageRed.add(init/2);
+                      init = init / 2 /2;
+                    }else if (initDown != 0 && initUp != 0){
+                      initDown = init / 2;
+                      imageRed.clear();
+                      imageRed.add(i);
+                      imageRed.add(init/2);
+                      init = init / 2 /2;
+                    }
+                  } else if (count == 1) {
+                    break;
+                  } else {
+                    if (initUp != 0) {
+                      initUp = init;
+                      init = initUp + initDown / 2;
+                    }
+                  }
+                }
+              }
+
 //              ArrayList<ArrayList<Integer>> imageRed = new ArrayList<ArrayList<Integer>>();
 //              for (int i = 1; i < 512; i++) {
-//                Log.e("pixel", String.valueOf(i));
+////                Log.e("pixel", String.valueOf(i));
 //                for (int j = 1; j < 512; j++) {
 ////                  Log.e("pixel",i+":"+j);
 //                  int color = bitmap.getPixel(i, j);
@@ -239,6 +275,31 @@ public class MainActivity extends AppCompatActivity {
               });
     }
 //  }
+
+  int binarySearch(int arr[], int l, int r, int x)
+  {
+    if (r >= l) {
+      int mid = l + (r - l) / 2;
+
+      // If the element is present at the
+      // middle itself
+      if (arr[mid] == x)
+        return mid;
+
+      // If element is smaller than mid, then
+      // it can only be present in left subarray
+      if (arr[mid] > x)
+        return binarySearch(arr, l, mid - 1, x);
+
+      // Else the element can only be present
+      // in right subarray
+      return binarySearch(arr, mid + 1, r, x);
+    }
+
+    // We reach here when element is not present
+    // in array
+    return -1;
+  }
 
   // Used to obtain the content view for this application. If you are extending this class, and
   // have a custom layout, override this method and return the custom layout.
