@@ -294,41 +294,41 @@ public class MainActivity extends AppCompatActivity {
                 if (imageRed.size() >= 2) Log.v(TAG, "Received color pos : " + imageRed);
               }
 
-              ArrayList<Integer> imageRed = new ArrayList<Integer>();
-              int init = 512;
-              int initUp = 0;
-              int initDown = 0;
-              int count = 0;
-              while(true){
-                count+=1;
-                for (int i = 1; i < 512; i++) {
-                  int color = bitmap.getPixel(i, init / 2);
-                  Float red = Color.valueOf(color).red();
-                  Float alpha = Color.valueOf(color).alpha();
-                  if (red == 1.0f && alpha == 1.0f) {
-                    if (initUp == 0) {
-                      initDown = init / 2;
-                      imageRed.clear();
-                      imageRed.add(i);
-                      imageRed.add(init/2);
-                      init = init / 2 /2;
-                    }else if (initDown != 0 && initUp != 0){
-                      initDown = init / 2;
-                      imageRed.clear();
-                      imageRed.add(i);
-                      imageRed.add(init/2);
-                      init = init / 2 /2;
-                    }
-                  } else if (count == 1) {
-                    break;
-                  } else {
-                    if (initUp != 0) {
-                      initUp = init;
-                      init = initUp + initDown / 2;
-                    }
-                  }
-                }
-              }
+//              ArrayList<Integer> imageRed = new ArrayList<Integer>();
+//              int init = 512;
+//              int initUp = 0;
+//              int initDown = 0;
+//              int count = 0;
+//              while(true){
+//                count+=1;
+//                for (int i = 1; i < 512; i++) {
+//                  int color = bitmap.getPixel(i, init / 2);
+//                  Float red = Color.valueOf(color).red();
+//                  Float alpha = Color.valueOf(color).alpha();
+//                  if (red == 1.0f && alpha == 1.0f) {
+//                    if (initUp == 0) {
+//                      initDown = init / 2;
+//                      imageRed.clear();
+//                      imageRed.add(i);
+//                      imageRed.add(init/2);
+//                      init = init / 2 /2;
+//                    }else if (initDown != 0 && initUp != 0){
+//                      initDown = init / 2;
+//                      imageRed.clear();
+//                      imageRed.add(i);
+//                      imageRed.add(init/2);
+//                      init = init / 2 /2;
+//                    }
+//                  } else if (count == 1) {
+//                    break;
+//                  } else {
+//                    if (initUp != 0) {
+//                      initUp = init;
+//                      init = initUp + initDown / 2;
+//                    }
+//                  }
+//                }
+//              }
 
 //              ArrayList<ArrayList<Integer>> imageRed = new ArrayList<ArrayList<Integer>>();
 //              for (int i = 1; i < 512; i++) {
