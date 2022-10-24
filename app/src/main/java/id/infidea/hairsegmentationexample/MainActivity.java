@@ -31,6 +31,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
@@ -95,6 +96,9 @@ public class MainActivity extends AppCompatActivity {
   Bitmap bitmap;
   Bitmap bitmap_tmp;
 
+  ImageView top;
+  ImageView bottom;
+
   // {@link SurfaceTexture} where the camera-preview frames can be accessed.
   private SurfaceTexture previewFrameTexture;
   // {@link SurfaceView} that displays the camera-preview frames processed by a MediaPipe graph.
@@ -127,6 +131,9 @@ public class MainActivity extends AppCompatActivity {
     } catch (NameNotFoundException e) {
       Log.e(TAG, "Cannot find application info: " + e);
     }
+
+    top = findViewById(R.id.top);
+    bottom = findViewById(R.id.bottom);
 
     previewDisplayView = new SurfaceView(this);
     setupPreviewDisplayView();
@@ -201,67 +208,48 @@ public class MainActivity extends AppCompatActivity {
                     low = 255;
                     high = 511;
                   } else {
-                    low = 0;
-                    high = 255;
+                    low = 255;
+                    high = 0;
                   }
 
-                  high = (high+low)/2;
-                  while (low != high) {
-                    int chosenJ = 0;
+                  int mid = (high+low)/2;
+                  while (mid != low && mid != high) {
+                    int chosenX = 0;
                     boolean found = false;
-                    // Row check
+                    // x-axis Row check in binary search y-axis
                     for(int j=0; j <= 511; j++) {
-//                      Log.v(TAG, "j : "+ j);
+//                      Log.v(TAG, "=====");
 //                      Log.v(TAG, "high : "+ high);
-                      color = bitmap.getPixel(j,high);
+//                      Log.v(TAG, "mid : "+ mid);
+//                      Log.v(TAG, "low : "+ low);
+                      color = bitmap.getPixel(j,mid);
                       Float red = Color.valueOf(color).red();
                       Float alpha = Color.valueOf(color).alpha();
-                      if (red == 1.0f) {
+                      if (red == 1.0f && alpha == 1.0f) {
 //                        Log.v(TAG, "Received found true");
                         found = true;
-                        chosenJ = j;
+                        chosenX = j;
                         break;
                       }
                     }
 
                     if (found) {
-                      // +1 and -1 to check where to continue
-                      int positiveColor;
-                      if (high+1 < 511) {
-                        positiveColor = bitmap.getPixel(chosenJ, high+1);
-                      } else positiveColor = bitmap.getPixel(chosenJ,511);
-                      int negativeColor;
-                      if (high -1 < 0) {
-                        negativeColor =  bitmap.getPixel(chosenJ,high-1);
-                      } else negativeColor = bitmap.getPixel(chosenJ,0);
-                      boolean finish = false;
+                      // If checked row has red color
+                      low = mid;
+                      mid = (mid + high)/2;
 
-                      if (i == 1 && Color.valueOf(positiveColor).red() == 1.0f) {
-                        if (high >= 511) {
-                          finish = true;
-                        } else high = high + 1;
-//                        Log.v(TAG, "High : " + low);
-//                        Log.v(TAG, "High : " + high);
-                      } else if (i == 2 && Color.valueOf(negativeColor).red() == 1.0f) {
-                        if (high <= 0) {
-                          finish = true;
-                        } else high = high - 1;
-//                        Log.v(TAG, "High2 : " + low);
-//                        Log.v(TAG, "High2 : " + high);
-                      } else {
-                        finish = true;
-                      }
-
-                      if (finish) {
+                      if (mid == low || mid == high) {
                         Log.v(TAG, "Received found finish");
                         ArrayList<Integer> addData = new ArrayList<>();
-                        addData.add(chosenJ);
-                        addData.add(high);
+                        addData.add(chosenX);
+                        addData.add(mid);
                         imageRed.add(addData);
                         break;
                       }
                     } else {
-                      high = (high+low)/2;
+                      // If checked row doesnt have red color
+                      high = mid;
+                      mid = (mid + low)/2;
                     }
                   }
   //                for (int j = 0; j < 512; j++) {
@@ -291,7 +279,20 @@ public class MainActivity extends AppCompatActivity {
   //                  }
   //                }
                 }
-                if (imageRed.size() >= 2) Log.v(TAG, "Received color pos : " + imageRed);
+                if (imageRed.size() >= 2) {
+                  Log.v(TAG, "Received color pos : " + imageRed);
+                  float ratioBottom = imageRed.get(0).get(1) / 512.0f;
+                  float ratioTop = imageRed.get(1).get(1) / 512.0f;
+                  runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                      Log.v(TAG, "Received color top : " + ratioTop * frameLayout.getHeight());
+                      Log.v(TAG, "Received color bottom : " + ratioBottom * frameLayout.getHeight());
+                      top.setY(ratioTop * frameLayout.getHeight());
+                      bottom.setY(ratioBottom * frameLayout.getHeight());
+                    }
+                  });
+                }
               }
 
 //              ArrayList<Integer> imageRed = new ArrayList<Integer>();
